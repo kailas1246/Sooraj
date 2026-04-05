@@ -3,10 +3,11 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 
-const habitRoutes = require('../routes/habits');
-const authRoutes = require('../routes/auth');
+const habitRoutes = require('./routes/habits');
+const authRoutes = require('./routes/auth');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -14,27 +15,22 @@ app.use(express.json());
 app.use('/api/habits', habitRoutes);
 app.use('/api/auth', authRoutes);
 
-// MongoDB connection (NO app.listen)
-let isConnected = false;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-const connectDB = async () => {
-  if (isConnected) return;
+// ✅ Correct MongoDB connection
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log('Connected to MongoDB');
 
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+  // ✅ Render NEEDS this
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 
-    isConnected = conn.connections[0].readyState;
-    console.log('Connected to MongoDB');
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-  }
-};
-
-// This is the important part 👇
-module.exports = async (req, res) => {
-  await connectDB();
-  return app(req, res);
-};
+})
+.catch((err) => {
+  console.error('MongoDB connection error:', err);
+});
